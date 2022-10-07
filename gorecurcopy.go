@@ -1,19 +1,43 @@
 // Package gorecurcopy provides recursive copying in Go (golang) with a
 // minimum of extra packages. Original concept by Oleg Neumyvakin
-// (https://stackoverflow.com/users/1592008/oleg-neumyvakin) and modified
-// by Dirk Avery.
+// (https://stackoverflow.com/users/1592008/oleg-neumyvakin) and modified by:
+// Dirk Avery (2019)
+// David Tagatac (2022)
 package gorecurcopy
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/spf13/afero"
 )
 
-// CopyDirectory recursively copies a src directory to a destination.
-func CopyDirectory(src, dst string) error {
+//go:generate mockgen -destination=mock_gorecurcopy/mock_gorecurcopy.go github.com/tagatac/gorecurcopy Copier
+
+type (
+	Copier interface {
+		// CopyDirectory recursively copies a src directory to a destination.
+		CopyDirectory(src, dst string) error
+		// Copy copies a src file to a dst file where src and dst are regular files.
+		Copy(src, dst string) error
+		// CopySymLink copies a symbolic link from src to dst.
+		CopySymLink(src, dst string) error
+	}
+
+	copier struct {
+		afero.Fs
+	}
+)
+
+func NewCopier(fs afero.Fs) Copier {
+	return copier{Fs: fs}
+}
+
+func (c copier) CopyDirectory(src, dst string) error {
 	entries, err := ioutil.ReadDir(src)
 	if err != nil {
 		return err
@@ -22,44 +46,28 @@ func CopyDirectory(src, dst string) error {
 		sourcePath := filepath.Join(src, entry.Name())
 		destPath := filepath.Join(dst, entry.Name())
 
-		fileInfo, err := os.Stat(sourcePath)
+		fileInfo, err := c.Fs.Stat(sourcePath)
 		if err != nil {
 			return err
 		}
 
 		switch fileInfo.Mode() & os.ModeType {
 		case os.ModeDir:
-			if err := createDir(destPath, 0755); err != nil {
+			if err := c.createDir(destPath, 0755); err != nil {
 				return err
 			}
-			if err := CopyDirectory(sourcePath, destPath); err != nil {
+			if err := c.CopyDirectory(sourcePath, destPath); err != nil {
 				return err
 			}
 		case os.ModeSymlink:
-			if err := CopySymLink(sourcePath, destPath); err != nil {
+			if err := c.CopySymLink(sourcePath, destPath); err != nil {
 				return err
 			}
 		default:
-			if err := Copy(sourcePath, destPath); err != nil {
+			if err := c.Copy(sourcePath, destPath); err != nil {
 				return err
 			}
 		}
-
-		// `go test` fails on Windows even with this `if` supposedly
-		// protecting the `syscall.Stat_t` and `os.Lchown` calls (not
-		// available on windows). why?
-		/*
-			if runtime.GOOS != "windows" {
-
-					stat, ok := fileInfo.Sys().(*syscall.Stat_t)
-					if !ok {
-						return fmt.Errorf("failed to get raw syscall.Stat_t data for '%s'", sourcePath)
-					}
-					if err := os.Lchown(destPath, int(stat.Uid), int(stat.Gid)); err != nil {
-						return err
-					}
-			}
-		*/
 
 		isSymlink := entry.Mode()&os.ModeSymlink != 0
 		if !isSymlink {
@@ -71,9 +79,8 @@ func CopyDirectory(src, dst string) error {
 	return nil
 }
 
-// Copy copies a src file to a dst file where src and dst are regular files.
-func Copy(src, dst string) error {
-	sourceFileStat, err := os.Stat(src)
+func (c copier) Copy(src, dst string) error {
+	sourceFileStat, err := c.Fs.Stat(src)
 	if err != nil {
 		return err
 	}
@@ -82,13 +89,13 @@ func Copy(src, dst string) error {
 		return fmt.Errorf("%s is not a regular file", src)
 	}
 
-	source, err := os.Open(src)
+	source, err := c.Fs.Open(src)
 	if err != nil {
 		return err
 	}
 	defer source.Close()
 
-	destination, err := os.Create(dst)
+	destination, err := c.Fs.Create(dst)
 	if err != nil {
 		return err
 	}
@@ -97,29 +104,32 @@ func Copy(src, dst string) error {
 	return err
 }
 
-func exists(path string) bool {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
+func (c copier) exists(path string) bool {
+	if _, err := c.Fs.Stat(path); os.IsNotExist(err) {
 		return false
 	}
 
 	return true
 }
 
-func createDir(dir string, perm os.FileMode) error {
-	if exists(dir) {
+func (c copier) createDir(dir string, perm os.FileMode) error {
+	if c.exists(dir) {
 		return nil
 	}
 
-	if err := os.MkdirAll(dir, perm); err != nil {
+	if err := c.Fs.MkdirAll(dir, perm); err != nil {
 		return fmt.Errorf("failed to create directory: '%s', error: '%s'", dir, err.Error())
 	}
 
 	return nil
 }
 
-// CopySymLink copies a symbolic link from src to dst.
-func CopySymLink(src, dst string) error {
-	link, err := os.Readlink(src)
+func (c copier) CopySymLink(src, dst string) error {
+	osfs, ok := c.Fs.(afero.OsFs)
+	if !ok {
+		return errors.New("copying symlinks is only possible in a OS filesystem")
+	}
+	link, err := osfs.ReadlinkIfPossible(src)
 	if err != nil {
 		return err
 	}
