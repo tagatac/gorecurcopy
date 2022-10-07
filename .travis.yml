@@ -5,10 +5,6 @@ stages:
 go:
   - 1.x
 
-stage: test
-install: skip
-script:
-  - make test
 jobs:
   include:
     - stage: lint
@@ -17,6 +13,10 @@ jobs:
         - go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
       script:
         - make lint
+    - stage: test
+      install: skip
+      script:
+        - make test
     - stage: test
       os: windows
       go: 1.x
