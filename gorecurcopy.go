@@ -32,7 +32,10 @@ type (
 	}
 )
 
-func NewCopier(fs afero.Fs) Copier {
+func NewCopier() Copier {
+	return copier{Fs: afero.NewOsFs()}
+}
+func NewCopierWithFs(fs afero.Fs) Copier {
 	return copier{Fs: fs}
 }
 

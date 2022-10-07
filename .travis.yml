@@ -8,23 +8,18 @@ go:
 jobs:
   include:
     - stage: lint
-      go: 1.x
       install:
         - go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
       script:
         - make lint
     - stage: test
-      install: skip
       script:
         - make test
     - stage: test
       os: windows
-      go: 1.x
-      language: go
       script:
         - go test
     - stage: test
       os: osx
-      osx_image: xcode14.0
-      go: 1.x
-      language: go
+      script:
+        - make test

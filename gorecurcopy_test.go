@@ -7,8 +7,6 @@ import (
 	"reflect"
 	"runtime"
 	"testing"
-
-	"github.com/spf13/afero"
 )
 
 const (
@@ -21,8 +19,7 @@ func TestRecursiveCopy(t *testing.T) {
 		t.Errorf("unable to remove test destination directory, %s", err)
 	}
 
-	cpr := NewCopier(afero.NewOsFs())
-
+	cpr := NewCopier()
 	if err := cpr.CopyDirectory(
 		filepath.Join(testDir, "test1"), filepath.Join(testDest, "test1"),
 	); err != nil {

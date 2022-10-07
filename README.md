@@ -10,18 +10,17 @@
 `gorecurcopy` copies directories recursively without external dependencies. Compatible with OSX, Linux, and Windows.
 
 This fork improves upon
-[plus3it's version](https://github.com/tagatac/gorecurcopy) by supporting the
-[afero Fs interface](https://pkg.go.dev/github.com/spf13/afero?utm_source=godoc#Fs).
+[plus3it's version](https://github.com/tagatac/gorecurcopy) by supplying a
+mockable interface for easier testing.
 
 Example:
 
 ```go
 import (
-	"github.com/spf13/afero"
 	"github.com/tagatac/gorecurcopy"
 )
 
 ...
-copier := gorecurcopy.NewCopier(afero.NewOsFs())
+copier := gorecurcopy.NewCopier()
 err := copier.CopyDirectory("directory", "new_directory")
 ```
