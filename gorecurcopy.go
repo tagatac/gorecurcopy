@@ -73,7 +73,7 @@ func (c copier) CopyDirectory(src, dst string) error {
 
 		isSymlink := entry.Mode()&os.ModeSymlink != 0
 		if !isSymlink {
-			if err := os.Chmod(destPath, entry.Mode()); err != nil {
+			if err := c.Fs.Chmod(destPath, entry.Mode()); err != nil {
 				return err
 			}
 		}
