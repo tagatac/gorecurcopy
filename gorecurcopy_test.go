@@ -19,7 +19,8 @@ func TestRecursiveCopy(t *testing.T) {
 		t.Errorf("unable to remove test destination directory, %s", err)
 	}
 
-	if err := CopyDirectory(
+	cpr := NewCopier()
+	if err := cpr.CopyDirectory(
 		filepath.Join(testDir, "test1"), filepath.Join(testDest, "test1"),
 	); err != nil {
 		t.Errorf("copying error, %s", err)
