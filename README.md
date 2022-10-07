@@ -10,7 +10,7 @@
 `gorecurcopy` copies directories recursively without external dependencies. Compatible with OSX, Linux, and Windows.
 
 This fork improves upon
-[plus3it's version](https://github.com/tagatac/gorecurcopy) by supplying a
+[plus3it's version](https://github.com/plus3it/gorecurcopy) by supplying a
 mockable interface for easier testing.
 
 Example:
