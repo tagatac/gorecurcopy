@@ -3,8 +3,7 @@ stages:
   - lint
   - test
 go:
-  - 1.11.x
-  - 1.12.x
+  - 1.x
 
 stage: test
 install: skip
@@ -13,19 +12,19 @@ script:
 jobs:
   include:
     - stage: lint
-      go: 1.12.x
+      go: 1.x
       install:
-        - GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.17.1
+        - go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
       script:
         - make lint
     - stage: test
       os: windows
-      go: 1.12.x
+      go: 1.x
       language: go
       script:
         - go test
     - stage: test
       os: osx
-      osx_image: xcode10.1
-      go: 1.12.x
+      osx_image: xcode14.0
+      go: 1.x
       language: go

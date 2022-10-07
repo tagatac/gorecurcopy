@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -38,7 +37,7 @@ func NewCopier(fs afero.Fs) Copier {
 }
 
 func (c copier) CopyDirectory(src, dst string) error {
-	entries, err := ioutil.ReadDir(src)
+	entries, err := afero.ReadDir(c.Fs, src)
 	if err != nil {
 		return err
 	}
