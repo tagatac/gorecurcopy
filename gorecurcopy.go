@@ -6,7 +6,6 @@
 package gorecurcopy
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -127,13 +126,17 @@ func (c copier) createDir(dir string, perm os.FileMode) error {
 }
 
 func (c copier) CopySymLink(src, dst string) error {
-	osfs, ok := c.Fs.(afero.OsFs)
+	lr, ok := c.Fs.(afero.LinkReader)
 	if !ok {
-		return errors.New("copying symlinks is only possible in a OS filesystem")
+		return fmt.Errorf("filesystem type %T does not support link reading", c.Fs)
 	}
-	link, err := osfs.ReadlinkIfPossible(src)
+	link, err := lr.ReadlinkIfPossible(src)
 	if err != nil {
 		return err
 	}
-	return os.Symlink(link, dst)
+	l, ok := c.Fs.(afero.Linker)
+	if !ok {
+		return fmt.Errorf("filesystem type %T does not support linking", lr)
+	}
+	return l.SymlinkIfPossible(link, dst)
 }
